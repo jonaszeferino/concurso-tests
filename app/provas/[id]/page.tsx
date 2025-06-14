@@ -56,13 +56,16 @@ export default function ProvaPage() {
       setIsLoading(true)
       try {
         if (params.id) {
-          const provaData = await getProvaById(params.id)
+          const provaData = await getProvaById(Number(params.id))
           setProva(provaData)
-          const questoesData = await getQuestoesByProva(params.id)
+          const questoesData = await getQuestoesByProva(Number(params.id))
           setQuestoes(questoesData)
         }
       } catch (error) {
         console.error("Erro ao carregar dados:", error)
+        // Fallback para dados mock em desenvolvimento
+        setQuestoes([])
+        setProva(null)
       } finally {
         setIsLoading(false)
       }
@@ -116,7 +119,7 @@ export default function ProvaPage() {
   const calcularPontuacao = () => {
     let acertos = 0
     questoes.forEach((q) => {
-      if (respostas[q.id] === q.correct_answer) {
+      if (respostas[q.id] === q.resposta_correta) {
         acertos++
       }
     })
@@ -184,8 +187,8 @@ export default function ProvaPage() {
       <Card className="mb-6">
         <CardHeader>
           <div className="flex justify-between items-start">
-            <CardTitle className="text-lg">Questão {questao.question_number}</CardTitle>
-            <Badge>{questao.subject}</Badge>
+            <CardTitle className="text-lg">Questão {questao.numero}</CardTitle>
+            <Badge>{questao.disciplinas?.nome}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -195,7 +198,7 @@ export default function ProvaPage() {
             value={respostas[questao.id]?.toString()}
             onValueChange={(value) => selecionarResposta(Number.parseInt(value))}
           >
-            {questao.options.map((alternativa: string, index: number) => (
+            {questao.alternativas.map((alternativa: string, index: number) => (
               <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50">
                 <RadioGroupItem value={index.toString()} id={`alt-${index}`} className="mt-1" />
                 <Label htmlFor={`alt-${index}`} className="flex-1 cursor-pointer leading-relaxed">

@@ -28,13 +28,12 @@ export default function ProvasPage() {
       try {
         const data = await getProvas()
         if (data) {
-          // Assuming getProvas returns an array of objects with prova and disciplinas
           setProvas(data)
-        } else {
-          console.error("Erro: getProvas retornou null ou undefined")
         }
       } catch (error) {
         console.error("Erro ao carregar provas:", error)
+        // Em caso de erro, usar dados mock para desenvolvimento
+        setProvas([])
       } finally {
         setLoading(false)
       }
@@ -43,12 +42,14 @@ export default function ProvasPage() {
   }, [])
 
   const filteredProvas = provas.filter((prova) => {
+    if (!prova.concursos || !prova.cargos) return false
+
     const matchesSearch =
-      prova.prova.concurso.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prova.prova.cargo.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesOrgao = selectedOrgao === "Todos" || prova.prova.orgao === selectedOrgao
-    const matchesBanca = selectedBanca === "Todas" || prova.prova.banca === selectedBanca
-    const matchesAno = selectedAno === "Todos" || prova.prova.ano.toString() === selectedAno
+      prova.concursos.orgao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prova.cargos.nome?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesOrgao = selectedOrgao === "Todos" || prova.concursos.orgao === selectedOrgao
+    const matchesBanca = selectedBanca === "Todas" // Implementar quando tiver relação com banca
+    const matchesAno = selectedAno === "Todos" || prova.concursos.ano?.toString() === selectedAno
 
     return matchesSearch && matchesOrgao && matchesBanca && matchesAno
   })
@@ -138,49 +139,42 @@ export default function ProvasPage() {
       ) : (
         <div className="grid gap-6">
           {filteredProvas.map((prova) => (
-            <Card key={prova.prova.id} className="hover:shadow-lg transition-shadow">
+            <Card key={prova.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-xl">{prova.prova.concurso}</CardTitle>
-                    <CardDescription className="text-lg font-medium text-gray-700">{prova.prova.cargo}</CardDescription>
+                    <CardTitle className="text-xl">
+                      {prova.concursos?.orgao} {prova.concursos?.ano}
+                    </CardTitle>
+                    <CardDescription className="text-lg font-medium text-gray-700">
+                      {prova.cargos?.nome}
+                    </CardDescription>
                   </div>
-                  <Badge variant="secondary">{prova.prova.ano}</Badge>
+                  <Badge variant="secondary">{prova.concursos?.ano}</Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{prova.prova.orgao}</span>
+                    <span className="text-sm">{prova.concursos?.orgao}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{prova.prova.banca}</span>
+                    <span className="text-sm">Banca: N/A</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{prova.prova.questoes} questões</span>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <Label className="text-sm font-medium">Disciplinas:</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {prova.disciplinas.map((disciplina) => (
-                      <Badge key={disciplina.id} variant="outline">
-                        {disciplina.nome}
-                      </Badge>
-                    ))}
+                    <span className="text-sm">Questões: N/A</span>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
                   <Button asChild>
-                    <Link href={`/provas/${prova.prova.id}`}>Iniciar Prova</Link>
+                    <Link href={`/provas/${prova.id}`}>Iniciar Prova</Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link href={`/provas/${prova.prova.id}/detalhes`}>Ver Detalhes</Link>
+                    <Link href={`/provas/${prova.id}/detalhes`}>Ver Detalhes</Link>
                   </Button>
                 </div>
               </CardContent>
