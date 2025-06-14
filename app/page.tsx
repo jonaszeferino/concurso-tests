@@ -1,7 +1,13 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Trophy, Filter } from "lucide-react"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { BookOpen, Trophy, Filter } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -14,16 +20,17 @@ export default function HomePage() {
             <span className="text-blue-600"> Concursos Públicos</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Plataforma completa para gerenciar e realizar provas de concursos públicos online. Cadastre provas, questões
-            e permita que candidatos pratiquem com filtros avançados.
+            Plataforma completa para gerenciar e realizar provas de concursos
+            públicos online. Cadastre provas, questões e permita que candidatos
+            pratiquem com filtros avançados.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="text-lg px-8 py-3">
               <Link href="/provas">Fazer Provas</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3">
+            {/* <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3">
               <Link href="/admin">Área Administrativa</Link>
-            </Button>
+            </Button>*/}
           </div>
         </div>
 
@@ -35,7 +42,10 @@ export default function HomePage() {
               <CardTitle>Banco de Questões</CardTitle>
             </CardHeader>
             <CardContent>
-              <CardDescription>Amplo banco de questões organizadas por disciplina, banca e concurso</CardDescription>
+              <CardDescription>
+                Amplo banco de questões organizadas por disciplina, banca e
+                concurso
+              </CardDescription>
             </CardContent>
           </Card>
 
@@ -45,7 +55,9 @@ export default function HomePage() {
               <CardTitle>Filtros Avançados</CardTitle>
             </CardHeader>
             <CardContent>
-              <CardDescription>Filtre provas por órgão, banca, cargo, disciplina e ano</CardDescription>
+              <CardDescription>
+                Filtre provas por órgão, banca, cargo, disciplina e ano
+              </CardDescription>
             </CardContent>
           </Card>
 
@@ -55,14 +67,18 @@ export default function HomePage() {
               <CardTitle>Simulados Online</CardTitle>
             </CardHeader>
             <CardContent>
-              <CardDescription>Realize provas completas online com correção automática</CardDescription>
+              <CardDescription>
+                Realize provas completas online com correção automática
+              </CardDescription>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick Stats */}
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-center mb-8">Estatísticas da Plataforma</h2>
+          <h2 className="text-2xl font-bold text-center mb-8">
+            Estatísticas da Plataforma
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
               <div className="text-3xl font-bold text-blue-600">1,250+</div>
@@ -84,5 +100,5 @@ export default function HomePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

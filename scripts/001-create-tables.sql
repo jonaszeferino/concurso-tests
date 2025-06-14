@@ -12,12 +12,12 @@ CREATE TABLE IF NOT EXISTS concursos (
 );
 
 -- Tabela de Bancas Examinadoras
-CREATE TABLE IF NOT EXISTS bancas_examinadoras (
+CREATE TABLE IF NOT EXISTS banca_examinadora (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     sigla VARCHAR(20) NOT NULL,
     site_oficial VARCHAR(255),
-    estilo_prova VARCHAR(100),
+    estilo_de_prova VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
