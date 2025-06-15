@@ -7,10 +7,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const prova_id = searchParams.get('prova_id')
     const disciplina_id = searchParams.get('disciplina_id')
+    const banca_id = searchParams.get('banca_id')
     const busca = searchParams.get('busca')
+    const pagina = parseInt(searchParams.get('pagina') || '1')
+    const porPagina = parseInt(searchParams.get('por_pagina') || '20')
+
+    console.log('Parâmetros recebidos:', { prova_id, disciplina_id, banca_id, busca, pagina, porPagina })
 
     const supabase = createRouteHandlerClient({ cookies })
     
+    // Query base
     let query = supabase
       .from('questao')
       .select(`
@@ -18,51 +24,119 @@ export async function GET(request: Request) {
         numero,
         enunciado,
         alternativas,
-        resposta_correta,
-        comentario,
-        status,
         prova:prova_id (
           id,
           titulo,
           concurso:concurso_id (
             id,
-            titulo
+            orgao,
+            ano,
+            banca_id
           ),
           disciplina:disciplina_id (
             id,
-            nome
+            nome,
+            area_de_conhecimento
           )
         )
-      `)
-      .order('numero', { ascending: true })
+      `, { count: 'exact' })
 
-    if (prova_id) {
-      query = query.eq('prova_id', prova_id)
+    // Aplicar filtros
+    if (prova_id && prova_id !== 'todas') {
+      console.log('Aplicando filtro de prova:', prova_id)
+      query = query.eq('prova_id', parseInt(prova_id))
     }
 
-    if (disciplina_id) {
-      query = query.eq('prova.disciplina_id', disciplina_id)
+    if (disciplina_id && disciplina_id !== 'todas') {
+      console.log('Aplicando filtro de disciplina:', disciplina_id)
+      query = query.eq('prova.disciplina_id', parseInt(disciplina_id))
+    }
+
+    if (banca_id && banca_id !== 'todas') {
+      console.log('Aplicando filtro de banca:', banca_id)
+      query = query.eq('prova.concurso.banca_id', parseInt(banca_id))
     }
 
     if (busca) {
-      query = query.or(`enunciado.ilike.%${busca}%,alternativas.ilike.%${busca}%`)
+      console.log('Aplicando filtro de busca:', busca)
+      query = query.or(`
+        enunciado.ilike.%${busca}%,
+        alternativas.ilike.%${busca}%,
+        prova.disciplina.nome.ilike.%${busca}%,
+        prova.concurso.orgao.ilike.%${busca}%
+      `)
     }
 
-    const { data, error } = await query
+    // Aplicar paginação
+    const inicio = (pagina - 1) * porPagina
+    query = query
+      .order('id', { ascending: false }) // Ordenar por ID decrescente (mais recentes primeiro)
+      .range(inicio, inicio + porPagina - 1)
+
+    console.log('Executando query...')
+    const { data, error, count } = await query
 
     if (error) {
-      console.error('Erro ao buscar questões:', error)
+      console.error('Erro detalhado do Supabase:', error)
       return NextResponse.json(
-        { error: "Erro ao buscar questões" },
+        { error: "Erro ao buscar questões", details: error.message },
         { status: 500 }
       )
     }
 
-    return NextResponse.json(data)
+    // Buscar informações da banca para cada questão
+    const questoesComBanca = await Promise.all(
+      data?.map(async (questao) => {
+        const { data: bancaData } = await supabase
+          .from('banca')
+          .select('nome')
+          .eq('id', questao.prova.concurso.banca_id)
+          .single()
+
+        return {
+          ...questao,
+          prova: {
+            ...questao.prova,
+            concurso: {
+              ...questao.prova.concurso,
+              banca: bancaData?.nome
+            }
+          }
+        }
+      }) || []
+    )
+
+    // Transformar os dados para o formato esperado pelo frontend
+    const questoesFormatadas = questoesComBanca.map(questao => ({
+      id: questao.id,
+      numero: questao.numero,
+      enunciado: questao.enunciado,
+      alternativas: questao.alternativas,
+      prova: {
+        id: questao.prova.id,
+        titulo: questao.prova.titulo,
+        concurso: {
+          titulo: `${questao.prova.concurso.orgao} ${questao.prova.concurso.ano}`,
+          banca: questao.prova.concurso.banca
+        },
+        disciplina: {
+          nome: questao.prova.disciplina.nome
+        }
+      }
+    }))
+
+    console.log('Questões encontradas:', questoesFormatadas.length)
+    return NextResponse.json({
+      questoes: questoesFormatadas,
+      total: count || 0,
+      pagina,
+      porPagina,
+      totalPaginas: Math.ceil((count || 0) / porPagina)
+    })
   } catch (error) {
     console.error('Erro ao buscar questões:', error)
     return NextResponse.json(
-      { error: "Erro ao buscar questões" },
+      { error: "Erro ao buscar questões", details: error instanceof Error ? error.message : 'Erro desconhecido' },
       { status: 500 }
     )
   }

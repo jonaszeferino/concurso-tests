@@ -3,19 +3,30 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const supabase = createRouteHandlerClient({ cookies })
-  
-  const { data, error } = await supabase
-    .from('banca_examinadora')
-    .select('*')
-    .order('nome', { ascending: true })
+  try {
+    const supabase = createRouteHandlerClient({ cookies })
+    
+    const { data, error } = await supabase
+      .from('banca_examinadora')
+      .select('id, nome')
+      .order('nome')
 
-  if (error) {
-    console.error('Erro no GET:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('Erro ao buscar bancas:', error)
+      return NextResponse.json(
+        { error: "Erro ao buscar bancas", details: error.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Erro ao buscar bancas:', error)
+    return NextResponse.json(
+      { error: "Erro ao buscar bancas", details: error instanceof Error ? error.message : 'Erro desconhecido' },
+      { status: 500 }
+    )
   }
-
-  return NextResponse.json(data)
 }
 
 export async function POST(request: Request) {
