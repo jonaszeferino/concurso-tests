@@ -26,7 +26,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="text-lg px-8 py-3">
-              <Link href="/provas">Fazer Provas</Link>
+              <Link href="/questoes">Fazer Questões</Link>
             </Button>
             {/* <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3">
               <Link href="/admin">Área Administrativa</Link>

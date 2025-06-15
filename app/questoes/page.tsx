@@ -16,6 +16,13 @@ import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface Prova {
   id: number
@@ -80,6 +87,10 @@ export default function QuestoesPage() {
   const [pagina, setPagina] = useState(1)
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [totalQuestoes, setTotalQuestoes] = useState(0)
+  const [salvandoLista, setSalvandoLista] = useState(false)
+  const [tituloLista, setTituloLista] = useState('')
+  const [descricaoLista, setDescricaoLista] = useState('')
+  const [dialogAberto, setDialogAberto] = useState(false)
 
   useEffect(() => {
     fetchProvas()
@@ -200,16 +211,106 @@ export default function QuestoesPage() {
     router.push(`/questoes/resolver?ids=${selectedQuestoes.join(',')}`)
   }
 
+  const handleSalvarLista = async () => {
+    if (!tituloLista.trim()) {
+      toast.error('Por favor, insira um título para a lista')
+      return
+    }
+
+    if (selectedQuestoes.length === 0) {
+      toast.error('Selecione pelo menos uma questão')
+      return
+    }
+
+    try {
+      setSalvandoLista(true)
+      const response = await fetch('/api/v1/listas-exercicios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          titulo: tituloLista,
+          descricao: descricaoLista,
+          questoes: selectedQuestoes
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.details || 'Erro ao salvar lista')
+      }
+
+      toast.success('Lista salva com sucesso!')
+      setDialogAberto(false)
+      setTituloLista('')
+      setDescricaoLista('')
+      setSelectedQuestoes([])
+    } catch (error) {
+      console.error('Erro ao salvar lista:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar lista')
+    } finally {
+      setSalvandoLista(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Questões</h1>
-        <Button
-          onClick={handleResolverQuestoes}
-          disabled={selectedQuestoes.length === 0}
-        >
-          Resolver Questões Selecionadas ({selectedQuestoes.length})
-        </Button>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Questões</h1>
+        <div className="flex gap-4">
+          <Button
+            variant="outline"
+            onClick={() => router.push('/listas')}
+          >
+            Minhas Listas Salvas
+          </Button>
+          <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={selectedQuestoes.length === 0}
+              >
+                Salvar Lista ({selectedQuestoes.length})
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Salvar Lista de Exercícios</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="titulo">Título</Label>
+                  <Input
+                    id="titulo"
+                    value={tituloLista}
+                    onChange={(e) => setTituloLista(e.target.value)}
+                    placeholder="Digite o título da lista"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="descricao">Descrição (opcional)</Label>
+                  <Input
+                    id="descricao"
+                    value={descricaoLista}
+                    onChange={(e) => setDescricaoLista(e.target.value)}
+                    placeholder="Digite uma descrição para a lista"
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {selectedQuestoes.length} questões selecionadas
+                </div>
+                <Button
+                  onClick={handleSalvarLista}
+                  disabled={salvandoLista || !tituloLista.trim()}
+                  className="w-full"
+                >
+                  {salvandoLista ? 'Salvando...' : 'Salvar Lista'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filtros */}
