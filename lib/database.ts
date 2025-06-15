@@ -1,15 +1,20 @@
-import { supabase } from "./supabase"
+import { createClient } from '@supabase/supabase-js'
 import type { Concurso, BancaExaminadora, Cargo, Prova, Disciplina, Questao, Gabarito } from "./supabase"
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+export const db = createClient(supabaseUrl, supabaseKey)
+
 // Verificar se o Supabase está configurado
-if (!supabase) {
+if (!db) {
   console.warn("Supabase client not configured")
 }
 
 // Funções para Concursos
 export async function getConcursos() {
   try {
-    const { data, error } = await supabase.from("concursos").select("*").order("ano", { ascending: false })
+    const { data, error } = await db.from("concursos").select("*").order("ano", { ascending: false })
 
     if (error) throw error
     return data
@@ -21,7 +26,7 @@ export async function getConcursos() {
 
 export async function createConcurso(concurso: Omit<Concurso, "id" | "created_at">) {
   try {
-    const { data, error } = await supabase.from("concursos").insert([concurso]).select().single()
+    const { data, error } = await db.from("concursos").insert([concurso]).select().single()
 
     if (error) throw error
     return data
@@ -33,7 +38,7 @@ export async function createConcurso(concurso: Omit<Concurso, "id" | "created_at
 
 export async function updateConcurso(id: number, concurso: Partial<Concurso>) {
   try {
-    const { data, error } = await supabase.from("concursos").update(concurso).eq("id", id).select().single()
+    const { data, error } = await db.from("concursos").update(concurso).eq("id", id).select().single()
 
     if (error) throw error
     return data
@@ -45,7 +50,7 @@ export async function updateConcurso(id: number, concurso: Partial<Concurso>) {
 
 export async function deleteConcurso(id: number) {
   try {
-    const { error } = await supabase.from("concursos").delete().eq("id", id)
+    const { error } = await db.from("concursos").delete().eq("id", id)
 
     if (error) throw error
   } catch (error) {
@@ -57,7 +62,7 @@ export async function deleteConcurso(id: number) {
 // Funções para Bancas
 export async function getBancas() {
   try {
-    const { data, error } = await supabase.from("bancas_examinadoras").select("*").order("nome")
+    const { data, error } = await db.from("bancas_examinadoras").select("*").order("nome")
 
     if (error) throw error
     return data
@@ -69,7 +74,7 @@ export async function getBancas() {
 
 export async function createBanca(banca: Omit<BancaExaminadora, "id" | "created_at">) {
   try {
-    const { data, error } = await supabase.from("bancas_examinadoras").insert([banca]).select().single()
+    const { data, error } = await db.from("bancas_examinadoras").insert([banca]).select().single()
 
     if (error) throw error
     return data
@@ -81,7 +86,7 @@ export async function createBanca(banca: Omit<BancaExaminadora, "id" | "created_
 
 export async function updateBanca(id: number, banca: Partial<BancaExaminadora>) {
   try {
-    const { data, error } = await supabase.from("bancas_examinadoras").update(banca).eq("id", id).select().single()
+    const { data, error } = await db.from("bancas_examinadoras").update(banca).eq("id", id).select().single()
 
     if (error) throw error
     return data
@@ -93,7 +98,7 @@ export async function updateBanca(id: number, banca: Partial<BancaExaminadora>) 
 
 export async function deleteBanca(id: number) {
   try {
-    const { error } = await supabase.from("bancas_examinadoras").delete().eq("id", id)
+    const { error } = await db.from("bancas_examinadoras").delete().eq("id", id)
 
     if (error) throw error
   } catch (error) {
@@ -105,7 +110,7 @@ export async function deleteBanca(id: number) {
 // Funções para Cargos
 export async function getCargos() {
   try {
-    const { data, error } = await supabase.from("cargos").select("*").order("nome")
+    const { data, error } = await db.from("cargos").select("*").order("nome")
 
     if (error) throw error
     return data
@@ -117,7 +122,7 @@ export async function getCargos() {
 
 export async function createCargo(cargo: Omit<Cargo, "id" | "created_at">) {
   try {
-    const { data, error } = await supabase.from("cargos").insert([cargo]).select().single()
+    const { data, error } = await db.from("cargos").insert([cargo]).select().single()
 
     if (error) throw error
     return data
@@ -129,7 +134,7 @@ export async function createCargo(cargo: Omit<Cargo, "id" | "created_at">) {
 
 export async function updateCargo(id: number, cargo: Partial<Cargo>) {
   try {
-    const { data, error } = await supabase.from("cargos").update(cargo).eq("id", id).select().single()
+    const { data, error } = await db.from("cargos").update(cargo).eq("id", id).select().single()
 
     if (error) throw error
     return data
@@ -141,7 +146,7 @@ export async function updateCargo(id: number, cargo: Partial<Cargo>) {
 
 export async function deleteCargo(id: number) {
   try {
-    const { error } = await supabase.from("cargos").delete().eq("id", id)
+    const { error } = await db.from("cargos").delete().eq("id", id)
 
     if (error) throw error
   } catch (error) {
@@ -153,7 +158,7 @@ export async function deleteCargo(id: number) {
 // Funções para Disciplinas
 export async function getDisciplinas() {
   try {
-    const { data, error } = await supabase.from("disciplinas").select("*").order("nome")
+    const { data, error } = await db.from("disciplinas").select("*").order("nome")
 
     if (error) throw error
     return data
@@ -165,7 +170,7 @@ export async function getDisciplinas() {
 
 export async function createDisciplina(disciplina: Omit<Disciplina, "id" | "created_at">) {
   try {
-    const { data, error } = await supabase.from("disciplinas").insert([disciplina]).select().single()
+    const { data, error } = await db.from("disciplinas").insert([disciplina]).select().single()
 
     if (error) throw error
     return data
@@ -177,7 +182,7 @@ export async function createDisciplina(disciplina: Omit<Disciplina, "id" | "crea
 
 export async function updateDisciplina(id: number, disciplina: Partial<Disciplina>) {
   try {
-    const { data, error } = await supabase.from("disciplinas").update(disciplina).eq("id", id).select().single()
+    const { data, error } = await db.from("disciplinas").update(disciplina).eq("id", id).select().single()
 
     if (error) throw error
     return data
@@ -189,7 +194,7 @@ export async function updateDisciplina(id: number, disciplina: Partial<Disciplin
 
 export async function deleteDisciplina(id: number) {
   try {
-    const { error } = await supabase.from("disciplinas").delete().eq("id", id)
+    const { error } = await db.from("disciplinas").delete().eq("id", id)
 
     if (error) throw error
   } catch (error) {
@@ -201,7 +206,7 @@ export async function deleteDisciplina(id: number) {
 // Funções para Provas
 export async function getProvas() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("provas")
       .select(`
       *,
@@ -220,7 +225,7 @@ export async function getProvas() {
 
 export async function getProvaById(id: number) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("provas")
       .select(`
       *,
@@ -240,7 +245,7 @@ export async function getProvaById(id: number) {
 
 export async function createProva(prova: Omit<Prova, "id" | "created_at">) {
   try {
-    const { data, error } = await supabase.from("provas").insert([prova]).select().single()
+    const { data, error } = await db.from("provas").insert([prova]).select().single()
 
     if (error) throw error
     return data
@@ -252,7 +257,7 @@ export async function createProva(prova: Omit<Prova, "id" | "created_at">) {
 
 export async function updateProva(id: number, prova: Partial<Prova>) {
   try {
-    const { data, error } = await supabase.from("provas").update(prova).eq("id", id).select().single()
+    const { data, error } = await db.from("provas").update(prova).eq("id", id).select().single()
 
     if (error) throw error
     return data
@@ -264,7 +269,7 @@ export async function updateProva(id: number, prova: Partial<Prova>) {
 
 export async function deleteProva(id: number) {
   try {
-    const { error } = await supabase.from("provas").delete().eq("id", id)
+    const { error } = await db.from("provas").delete().eq("id", id)
 
     if (error) throw error
   } catch (error) {
@@ -276,7 +281,7 @@ export async function deleteProva(id: number) {
 // Funções para Questões
 export async function getQuestoes() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("questoes")
       .select(`
       *,
@@ -296,7 +301,7 @@ export async function getQuestoes() {
 
 export async function getQuestoesByProva(provaId: number) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("questoes")
       .select(`
       *,
@@ -315,7 +320,7 @@ export async function getQuestoesByProva(provaId: number) {
 
 export async function createQuestao(questao: Omit<Questao, "id" | "created_at">) {
   try {
-    const { data, error } = await supabase.from("questoes").insert([questao]).select().single()
+    const { data, error } = await db.from("questoes").insert([questao]).select().single()
 
     if (error) throw error
     return data
@@ -327,7 +332,7 @@ export async function createQuestao(questao: Omit<Questao, "id" | "created_at">)
 
 export async function updateQuestao(id: number, questao: Partial<Questao>) {
   try {
-    const { data, error } = await supabase.from("questoes").update(questao).eq("id", id).select().single()
+    const { data, error } = await db.from("questoes").update(questao).eq("id", id).select().single()
 
     if (error) throw error
     return data
@@ -339,7 +344,7 @@ export async function updateQuestao(id: number, questao: Partial<Questao>) {
 
 export async function deleteQuestao(id: number) {
   try {
-    const { error } = await supabase.from("questoes").delete().eq("id", id)
+    const { error } = await db.from("questoes").delete().eq("id", id)
 
     if (error) throw error
   } catch (error) {
@@ -351,7 +356,7 @@ export async function deleteQuestao(id: number) {
 // Funções para Gabaritos
 export async function getGabaritoByProva(provaId: number) {
   try {
-    const { data, error } = await supabase.from("gabaritos").select("*").eq("prova_id", provaId).single()
+    const { data, error } = await db.from("gabaritos").select("*").eq("prova_id", provaId).single()
 
     if (error) throw error
     return data
@@ -363,7 +368,7 @@ export async function getGabaritoByProva(provaId: number) {
 
 export async function createGabarito(gabarito: Omit<Gabarito, "id" | "created_at">) {
   try {
-    const { data, error } = await supabase.from("gabaritos").insert([gabarito]).select().single()
+    const { data, error } = await db.from("gabaritos").insert([gabarito]).select().single()
 
     if (error) throw error
     return data
@@ -375,7 +380,7 @@ export async function createGabarito(gabarito: Omit<Gabarito, "id" | "created_at
 
 export async function updateGabarito(id: number, gabarito: Partial<Gabarito>) {
   try {
-    const { data, error } = await supabase.from("gabaritos").update(gabarito).eq("id", id).select().single()
+    const { data, error } = await db.from("gabaritos").update(gabarito).eq("id", id).select().single()
 
     if (error) throw error
     return data
@@ -387,7 +392,7 @@ export async function updateGabarito(id: number, gabarito: Partial<Gabarito>) {
 
 export async function deleteGabarito(id: number) {
   try {
-    const { error } = await supabase.from("gabaritos").delete().eq("id", id)
+    const { error } = await db.from("gabaritos").delete().eq("id", id)
 
     if (error) throw error
   } catch (error) {
@@ -405,7 +410,7 @@ export async function searchProvas(filters: {
   search?: string
 }) {
   try {
-    let query = supabase.from("provas").select(`
+    let query = db.from("provas").select(`
       *,
       concursos (orgao, ano, edital),
       cargos (nome, nivel)
@@ -437,10 +442,10 @@ export async function searchProvas(filters: {
 export async function getDashboardStats() {
   try {
     const [concursos, provas, questoes, disciplinas] = await Promise.all([
-      supabase.from("concursos").select("id", { count: "exact" }),
-      supabase.from("provas").select("id", { count: "exact" }),
-      supabase.from("questoes").select("id", { count: "exact" }),
-      supabase.from("disciplinas").select("id", { count: "exact" }),
+      db.from("concursos").select("id", { count: "exact" }),
+      db.from("provas").select("id", { count: "exact" }),
+      db.from("questoes").select("id", { count: "exact" }),
+      db.from("disciplinas").select("id", { count: "exact" }),
     ])
 
     return {
@@ -463,7 +468,7 @@ export async function getDashboardStats() {
 // Função para contar questões por prova
 export async function getQuestoesCountByProva(provaId: number) {
   try {
-    const { count, error } = await supabase
+    const { count, error } = await db
       .from("questoes")
       .select("*", { count: "exact", head: true })
       .eq("prova_id", provaId)
@@ -479,7 +484,7 @@ export async function getQuestoesCountByProva(provaId: number) {
 // Função para buscar disciplinas únicas de uma prova
 export async function getDisciplinasByProva(provaId: number) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("questoes")
       .select(`
       disciplinas (nome)

@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,146 +18,236 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Edit, Trash2, Search } from "lucide-react"
-import {
-  getQuestoes,
-  createQuestao,
-  updateQuestao,
-  deleteQuestao,
-  getDisciplinas,
-  getProvas,
-  getBancas,
-} from "@/lib/database"
+import { toast } from "sonner"
+
+interface Questao {
+  id: number
+  numero: number
+  prova_id: number
+  disciplina_id: number
+  enunciado: string
+  alternativas: string[]
+  resposta_correta: number
+  comentario?: string
+  status: string
+  prova: {
+    id: number
+    titulo: string
+    codigo_interno: string
+    concurso: {
+      id: number
+      orgao: string
+      ano: number
+    }
+  }
+  disciplina: {
+    id: number
+    nome: string
+    area_de_conhecimento: string
+  }
+}
+
+interface Prova {
+  id: number
+  titulo: string
+  codigo_interno: string
+  data_prova: string
+  descricao: string
+  nivel_dificuldade: string
+  tempo_limite: number
+  numero_questoes: number
+  updated_at: string
+  concurso: {
+    id: number
+    orgao: string
+    ano: number
+  }
+  disciplina: {
+    id: number
+    nome: string
+  }
+  cargo: {
+    id: number
+    nome_do_cargo: string
+    nivel: string
+  }
+}
+
+interface Disciplina {
+  id: number
+  nome: string
+  area_de_conhecimento: string
+}
 
 export default function QuestoesAdminPage() {
-  const [questoes, setQuestoes] = useState([])
+  const [questoes, setQuestoes] = useState<Questao[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingQuestao, setEditingQuestao] = useState<any>(null)
+  const [editingQuestao, setEditingQuestao] = useState<Questao | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [provas, setProvas] = useState<Prova[]>([])
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([])
 
   const [formData, setFormData] = useState({
     numero: "",
-    disciplina: "",
-    prova: "",
+    prova_id: "",
+    disciplina_id: "",
     enunciado: "",
     alternativas: ["", "", "", "", ""],
-    respostaCorreta: 0,
+    resposta_correta: 0,
     comentario: "",
+    status: "ativa"
   })
 
-  const [disciplinas, setDisciplinas] = useState([])
-  const [provas, setProvas] = useState([])
-  const [bancas, setBancas] = useState([])
-
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const questoesData = await getQuestoes()
-        setQuestoes(questoesData)
-
-        const disciplinasData = await getDisciplinas()
-        setDisciplinas(disciplinasData)
-
-        const provasData = await getProvas()
-        setProvas(provasData)
-
-        const bancasData = await getBancas()
-        setBancas(bancasData)
-
-        setError(null)
-      } catch (e: any) {
-        setError(e.message)
-        console.error("Failed to fetch data", e)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
+    fetchQuestoes()
+    fetchProvas()
+    fetchDisciplinas()
   }, [])
+
+  const fetchQuestoes = async () => {
+    try {
+      const response = await fetch('/api/v1/questoes')
+      if (!response.ok) throw new Error('Erro ao carregar questões')
+      const data = await response.json()
+      setQuestoes(data)
+    } catch (error) {
+      toast.error("Erro ao carregar questões")
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchProvas = async () => {
+    try {
+      const response = await fetch('/api/v1/provas')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao carregar provas')
+      }
+      const data = await response.json()
+      console.log('Provas carregadas:', data)
+      if (!data || data.length === 0) {
+        console.warn('Nenhuma prova encontrada')
+      }
+      setProvas(data)
+    } catch (error) {
+      toast.error("Erro ao carregar provas")
+      console.error('Erro ao carregar provas:', error)
+    }
+  }
+
+  const fetchDisciplinas = async () => {
+    try {
+      const response = await fetch('/api/v1/disciplinas')
+      if (!response.ok) throw new Error('Erro ao carregar disciplinas')
+      const data = await response.json()
+      console.log('Disciplinas carregadas:', data)
+      setDisciplinas(data)
+    } catch (error) {
+      toast.error("Erro ao carregar disciplinas")
+      console.error('Erro ao carregar disciplinas:', error)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     try {
-      if (editingQuestao) {
-        // Editar questão existente
-        await updateQuestao(editingQuestao.id, { ...formData, status: "Ativa" })
-        setQuestoes((prev) =>
-          prev.map((q) =>
-            q.id === editingQuestao.id ? { ...q, ...formData, id: editingQuestao.id, status: "Ativa" } : q,
-          ),
-        )
-      } else {
-        // Adicionar nova questão
-        const newQuestao = await createQuestao({ ...formData, status: "Ativa" })
-        setQuestoes((prev) => [...prev, newQuestao])
+      console.log('FormData antes do envio:', formData)
+
+      // Validar campos obrigatórios
+      if (!formData.prova_id || !formData.disciplina_id || !formData.enunciado) {
+        toast.error("Preencha todos os campos obrigatórios")
+        return
       }
 
-      // Reset form
+      // Validar alternativas (mínimo 2 preenchidas)
+      const alternativasPreenchidas = formData.alternativas.filter(alt => alt.trim() !== "")
+      if (alternativasPreenchidas.length < 2) {
+        toast.error("Adicione pelo menos 2 alternativas")
+        return
+      }
+
+      // Validar resposta correta
+      if (formData.resposta_correta === undefined || formData.resposta_correta === null) {
+        toast.error("Selecione uma resposta correta")
+        return
+      }
+
+      // Preparar dados para envio
+      const dadosParaEnvio = {
+        ...formData,
+        prova_id: parseInt(formData.prova_id),
+        disciplina_id: parseInt(formData.disciplina_id),
+        numero: parseInt(formData.numero) || 0,
+        alternativas: alternativasPreenchidas,
+        resposta_correta: Number(formData.resposta_correta)
+      }
+
+      console.log('Dados para envio:', dadosParaEnvio)
+
+      const response = await fetch('/api/v1/questoes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dadosParaEnvio),
+      })
+
+      const responseData = await response.json()
+      console.log('Resposta da API:', responseData)
+
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Erro ao salvar questão')
+      }
+
+      toast.success("Questão salva com sucesso!")
       setFormData({
         numero: "",
-        disciplina: "",
-        prova: "",
+        prova_id: "",
+        disciplina_id: "",
         enunciado: "",
         alternativas: ["", "", "", "", ""],
-        respostaCorreta: 0,
+        resposta_correta: 0,
         comentario: "",
+        status: "ativa"
       })
-      setEditingQuestao(null)
       setIsDialogOpen(false)
-      setError(null)
-    } catch (e: any) {
-      setError(e.message)
-      console.error("Failed to save data", e)
-    } finally {
-      setLoading(false)
+      fetchQuestoes()
+    } catch (error) {
+      console.error('Erro ao salvar questão:', error)
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar questão")
     }
   }
 
-  const handleEdit = async (questao: any) => {
-    setEditingQuestao(questao)
-    setFormData({
-      numero: questao.numero.toString(),
-      disciplina: questao.disciplina,
-      prova: questao.prova,
-      enunciado: questao.enunciado,
-      alternativas: questao.alternativas,
-      respostaCorreta: questao.respostaCorreta,
-      comentario: questao.comentario || "",
-    })
-    setIsDialogOpen(true)
-  }
-
   const handleDelete = async (id: number) => {
-    setLoading(true)
+    if (!confirm("Tem certeza que deseja excluir esta questão?")) return
+
     try {
-      await deleteQuestao(id)
-      setQuestoes((prev) => prev.filter((q) => q.id !== id))
-      setError(null)
-    } catch (e: any) {
-      setError(e.message)
-      console.error("Failed to delete data", e)
-    } finally {
-      setLoading(false)
+      const response = await fetch(`/api/v1/questoes?id=${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Erro ao excluir questão')
+
+      toast.success("Questão excluída com sucesso!")
+      fetchQuestoes()
+    } catch (error) {
+      toast.error("Erro ao excluir questão")
+      console.error(error)
     }
   }
 
   const filteredQuestoes = questoes.filter(
-    (questao: any) =>
+    (questao) =>
       questao.enunciado?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      questao.disciplina?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      questao.prova?.toLowerCase().includes(searchTerm.toLowerCase()),
+      questao.disciplina?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      questao.prova?.titulo?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (loading) {
-    return <div className="container mx-auto px-4 py-8">Loading...</div>
-  }
-
-  if (error) {
-    return <div className="container mx-auto px-4 py-8">Error: {error}</div>
+    return <div className="container mx-auto px-4 py-8">Carregando...</div>
   }
 
   return (
@@ -176,12 +264,13 @@ export default function QuestoesAdminPage() {
                 setEditingQuestao(null)
                 setFormData({
                   numero: "",
-                  disciplina: "",
-                  prova: "",
+                  prova_id: "",
+                  disciplina_id: "",
                   enunciado: "",
                   alternativas: ["", "", "", "", ""],
-                  respostaCorreta: 0,
+                  resposta_correta: 0,
                   comentario: "",
+                  status: "ativa"
                 })
               }}
             >
@@ -207,40 +296,71 @@ export default function QuestoesAdminPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="disciplina">Disciplina</Label>
+                  <Label htmlFor="prova_id">Prova</Label>
                   <Select
-                    value={formData.disciplina}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, disciplina: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a disciplina" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {disciplinas.map((disciplina: any) => (
-                        <SelectItem key={disciplina.id} value={disciplina.nome}>
-                          {disciplina.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="prova">Prova</Label>
-                  <Select
-                    value={formData.prova}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, prova: value }))}
+                    value={formData.prova_id}
+                    onValueChange={(value) => {
+                      console.log('Prova selecionada:', value)
+                      setFormData((prev) => ({ ...prev, prova_id: value }))
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a prova" />
                     </SelectTrigger>
                     <SelectContent>
-                      {provas.map((prova: any) => (
-                        <SelectItem key={prova.id} value={prova.nome}>
-                          {prova.nome}
+                      {provas && provas.length > 0 ? (
+                        provas.map((prova) => (
+                          <SelectItem 
+                            key={prova.id} 
+                            value={prova.id.toString()}
+                          >
+                            {prova.titulo} - {prova.concurso?.orgao} {prova.concurso?.ano} ({prova.disciplina?.nome})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="0" disabled>
+                          Nenhuma prova disponível
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
+                  {provas.length === 0 && (
+                    <p className="text-sm text-red-500 mt-1">
+                      Nenhuma prova cadastrada. Cadastre uma prova primeiro.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="disciplina_id">Disciplina</Label>
+                  <Select
+                    value={formData.disciplina_id}
+                    onValueChange={(value) => {
+                      console.log('Disciplina selecionada:', value)
+                      setFormData((prev) => ({ ...prev, disciplina_id: value }))
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a disciplina" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {disciplinas && disciplinas.length > 0 ? (
+                        disciplinas.map((disciplina) => (
+                          <SelectItem key={disciplina.id} value={disciplina.id.toString()}>
+                            {disciplina.nome}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>
+                          Nenhuma disciplina disponível
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {disciplinas.length === 0 && (
+                    <p className="text-sm text-red-500 mt-1">
+                      Nenhuma disciplina cadastrada. Cadastre uma disciplina primeiro.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -255,33 +375,77 @@ export default function QuestoesAdminPage() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-4">
                 <Label>Alternativas</Label>
-                <div className="space-y-3">
-                  {formData.alternativas.map((alt, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <Label className="w-8">{String.fromCharCode(65 + index)})</Label>
-                      <Input
-                        value={alt}
-                        onChange={(e) => {
-                          const newAlternativas = [...formData.alternativas]
-                          newAlternativas[index] = e.target.value
-                          setFormData((prev) => ({ ...prev, alternativas: newAlternativas }))
-                        }}
-                        placeholder={`Alternativa ${String.fromCharCode(65 + index)}`}
-                        required
-                      />
-                      <input
-                        type="radio"
-                        name="respostaCorreta"
-                        checked={formData.respostaCorreta === index}
-                        onChange={() => setFormData((prev) => ({ ...prev, respostaCorreta: index }))}
-                        className="w-4 h-4"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm text-gray-500 mt-2">Marque o círculo da alternativa correta</p>
+                {formData.alternativas.map((alternativa, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={alternativa}
+                      onChange={(e) => {
+                        const novasAlternativas = [...formData.alternativas]
+                        novasAlternativas[index] = e.target.value
+                        setFormData({ ...formData, alternativas: novasAlternativas })
+                      }}
+                      placeholder={`Alternativa ${String.fromCharCode(65 + index)}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const novasAlternativas = formData.alternativas.filter((_, i) => i !== index)
+                        setFormData({ ...formData, alternativas: novasAlternativas })
+                      }}
+                      disabled={formData.alternativas.length <= 2}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {formData.alternativas.length < 5 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        alternativas: [...formData.alternativas, ""]
+                      })
+                    }}
+                  >
+                    Adicionar Alternativa
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Resposta Correta</Label>
+                <Select
+                  value={formData.resposta_correta?.toString() || "0"}
+                  onValueChange={(value) => {
+                    console.log('Valor selecionado:', value)
+                    const respostaCorreta = parseInt(value)
+                    console.log('Valor convertido:', respostaCorreta)
+                    setFormData(prev => {
+                      const newData = { ...prev, resposta_correta: respostaCorreta }
+                      console.log('Novo formData:', newData)
+                      return newData
+                    })
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a resposta correta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formData.alternativas.map((alt, index) => (
+                      alt.trim() !== "" && (
+                        <SelectItem key={index} value={index.toString()}>
+                          {String.fromCharCode(65 + index)}
+                        </SelectItem>
+                      )
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -338,18 +502,22 @@ export default function QuestoesAdminPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredQuestoes.map((questao: any) => (
+              {filteredQuestoes.map((questao) => (
                 <TableRow key={questao.id}>
                   <TableCell>{questao.numero}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{questao.disciplina}</Badge>
+                    <Badge variant="outline">{questao.disciplina.nome}</Badge>
                   </TableCell>
-                  <TableCell>{questao.prova}</TableCell>
+                  <TableCell>
+                    {questao.prova.titulo} - {questao.prova.concurso.orgao} {questao.prova.concurso.ano}
+                  </TableCell>
                   <TableCell className="max-w-md">
                     <p className="truncate">{questao.enunciado}</p>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={questao.status === "Ativa" ? "default" : "secondary"}>{questao.status}</Badge>
+                    <Badge variant={questao.status === "ativa" ? "default" : "secondary"}>
+                      {questao.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
