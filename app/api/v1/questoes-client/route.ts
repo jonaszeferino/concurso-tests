@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 
     const supabase = createRouteHandlerClient({ cookies })
     
-    // Query base
+    // Query base com join explícito
     let query = supabase
       .from('questao')
       .select(`
@@ -27,16 +27,18 @@ export async function GET(request: Request) {
         prova:prova_id (
           id,
           titulo,
+          disciplina:disciplina_id (
+            id,
+            nome
+          ),
           concurso:concurso_id (
             id,
             orgao,
             ano,
-            banca_id
-          ),
-          disciplina:disciplina_id (
-            id,
-            nome,
-            area_de_conhecimento
+            banca:banca_id (
+              id,
+              nome
+            )
           )
         )
       `, { count: 'exact' })
@@ -63,14 +65,15 @@ export async function GET(request: Request) {
         enunciado.ilike.%${busca}%,
         alternativas.ilike.%${busca}%,
         prova.disciplina.nome.ilike.%${busca}%,
-        prova.concurso.orgao.ilike.%${busca}%
+        prova.concurso.orgao.ilike.%${busca}%,
+        prova.concurso.banca.nome.ilike.%${busca}%
       `)
     }
 
     // Aplicar paginação
     const inicio = (pagina - 1) * porPagina
     query = query
-      .order('id', { ascending: false }) // Ordenar por ID decrescente (mais recentes primeiro)
+      .order('id', { ascending: false })
       .range(inicio, inicio + porPagina - 1)
 
     console.log('Executando query...')
@@ -84,46 +87,32 @@ export async function GET(request: Request) {
       )
     }
 
-    // Buscar informações da banca para cada questão
-    const questoesComBanca = await Promise.all(
-      data?.map(async (questao) => {
-        const { data: bancaData } = await supabase
-          .from('banca')
-          .select('nome')
-          .eq('id', questao.prova.concurso.banca_id)
-          .single()
+    // Transformar os dados para o formato esperado pelo frontend
+    const questoesFormatadas = data?.map(questao => {
+      // Verificar se todos os dados necessários existem
+      if (!questao.prova?.concurso || !questao.prova?.disciplina) {
+        console.warn('Dados incompletos para questão:', questao.id)
+        return null
+      }
 
-        return {
-          ...questao,
-          prova: {
-            ...questao.prova,
-            concurso: {
-              ...questao.prova.concurso,
-              banca: bancaData?.nome
-            }
+      return {
+        id: questao.id,
+        numero: questao.numero,
+        enunciado: questao.enunciado,
+        alternativas: questao.alternativas,
+        prova: {
+          id: questao.prova.id,
+          titulo: questao.prova.titulo,
+          concurso: {
+            titulo: `${questao.prova.concurso.orgao} ${questao.prova.concurso.ano}`,
+            banca: questao.prova.concurso.banca?.nome || 'Banca não especificada'
+          },
+          disciplina: {
+            nome: questao.prova.disciplina.nome
           }
         }
-      }) || []
-    )
-
-    // Transformar os dados para o formato esperado pelo frontend
-    const questoesFormatadas = questoesComBanca.map(questao => ({
-      id: questao.id,
-      numero: questao.numero,
-      enunciado: questao.enunciado,
-      alternativas: questao.alternativas,
-      prova: {
-        id: questao.prova.id,
-        titulo: questao.prova.titulo,
-        concurso: {
-          titulo: `${questao.prova.concurso.orgao} ${questao.prova.concurso.ano}`,
-          banca: questao.prova.concurso.banca
-        },
-        disciplina: {
-          nome: questao.prova.disciplina.nome
-        }
       }
-    }))
+    }).filter(Boolean) || []
 
     console.log('Questões encontradas:', questoesFormatadas.length)
     return NextResponse.json({

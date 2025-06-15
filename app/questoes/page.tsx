@@ -172,6 +172,7 @@ export default function QuestoesPage() {
 
   const handleFiltroChange = (campo: string, valor: string) => {
     setFiltros(prev => ({ ...prev, [campo]: valor }))
+    setPagina(1)
   }
 
   const handleBusca = () => {
@@ -185,6 +186,10 @@ export default function QuestoesPage() {
       }
       return [...prev, questaoId]
     })
+  }
+
+  const handleResolverQuestao = (questaoId: number) => {
+    router.push(`/questoes/resolver?ids=${questaoId}`)
   }
 
   const handleResolverQuestoes = () => {
@@ -203,7 +208,7 @@ export default function QuestoesPage() {
           onClick={handleResolverQuestoes}
           disabled={selectedQuestoes.length === 0}
         >
-          Resolver Questões Selecionadas
+          Resolver Questões Selecionadas ({selectedQuestoes.length})
         </Button>
       </div>
 
@@ -211,7 +216,7 @@ export default function QuestoesPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Select
           value={filtros.prova_id}
-          onValueChange={(value) => setFiltros(prev => ({ ...prev, prova_id: value }))}
+          onValueChange={(value) => handleFiltroChange('prova_id', value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Selecione a prova" />
@@ -228,7 +233,7 @@ export default function QuestoesPage() {
 
         <Select
           value={filtros.disciplina_id}
-          onValueChange={(value) => setFiltros(prev => ({ ...prev, disciplina_id: value }))}
+          onValueChange={(value) => handleFiltroChange('disciplina_id', value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Selecione a disciplina" />
@@ -245,7 +250,7 @@ export default function QuestoesPage() {
 
         <Select
           value={filtros.banca_id}
-          onValueChange={(value) => setFiltros(prev => ({ ...prev, banca_id: value }))}
+          onValueChange={(value) => handleFiltroChange('banca_id', value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Selecione a banca" />
@@ -260,11 +265,14 @@ export default function QuestoesPage() {
           </SelectContent>
         </Select>
 
-        <Input
-          placeholder="Buscar por texto, disciplina ou cargo..."
-          value={filtros.busca}
-          onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
-        />
+        <div className="flex gap-2">
+          <Input
+            placeholder="Buscar por texto, disciplina ou cargo..."
+            value={filtros.busca}
+            onChange={(e) => setFiltros(prev => ({ ...prev, busca: e.target.value }))}
+          />
+          <Button onClick={handleBusca}>Buscar</Button>
+        </div>
       </div>
 
       {/* Lista de Questões */}
